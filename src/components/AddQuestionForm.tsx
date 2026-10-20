@@ -15,13 +15,26 @@ function parseRefs(text: string) {
   return refs;
 }
 
-/** Add a question by hand; fields depend on the round. */
+export type QuestionBody = {
+  type: QuestionType;
+  prompt: string;
+  answer: string;
+  refs: { surah: number; ayah: number }[];
+  page?: number;
+};
+
+/**
+ * Add a question by hand; fields depend on the round. Saved to the bank, or,
+ * with [onSubmit], handed over instead (a match's own question).
+ */
 export default function AddQuestionForm({
   type,
   onSaved,
+  onSubmit,
 }: {
   type: QuestionType;
   onSaved: () => void | Promise<void>;
+  onSubmit?: (body: QuestionBody) => Promise<boolean>;
 }) {
   const [prompt, setPrompt] = useState("");
   const [answer, setAnswer] = useState("");
@@ -47,15 +60,20 @@ export default function AddQuestionForm({
       }
       refs = parsed;
     }
+    const body: QuestionBody = {
+      type,
+      prompt,
+      answer,
+      refs,
+      page: type === "ayah_number" ? Number(page) : undefined,
+    };
     setBusy(true);
     try {
-      await apiSend("POST", "/admin/questions", {
-        type,
-        prompt,
-        answer,
-        refs,
-        page: type === "ayah_number" ? Number(page) : undefined,
-      });
+      if (onSubmit) {
+        if (!(await onSubmit(body))) return;
+      } else {
+        await apiSend("POST", "/admin/questions", body);
+      }
       await onSaved();
     } catch (err) {
       setError(`تعذر الحفظ: ${(err as Error).message}`);
@@ -126,7 +144,7 @@ export default function AddQuestionForm({
       {error && <p className="error">{error}</p>}
       <div>
         <button type="submit" disabled={busy}>
-          {busy ? "…" : "حفظ السؤال"}
+          {busy ? "…" : onSubmit ? "إضافة" : "حفظ السؤال"}
         </button>
       </div>
     </form>

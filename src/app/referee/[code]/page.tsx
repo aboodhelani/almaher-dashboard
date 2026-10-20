@@ -4,11 +4,12 @@ import Link from "next/link";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import MatchSetup from "@/components/MatchSetup";
+import RemoteMedia, { MediaGrant } from "@/components/RemoteMedia";
 import RoundStatus from "@/components/RoundStatus";
 import { Avatar, Chip, Icon } from "@/components/ui";
 import { ar, getAdminKey, LiveMatch, SERVER_URL, totalQuestions } from "@/lib/api";
 
-type Ack = { ok: boolean; error?: string; questions?: never[] };
+type Ack = { ok: boolean; error?: string; questions?: never[]; url?: string; token?: string };
 type State = LiveMatch & { you: string; winner: string | null };
 type P = "player1" | "player2";
 
@@ -25,6 +26,7 @@ const ERRORS: Record<string, string> = {
   too_many_questions: "اكتملت أسئلة هذه الفقرة",
   already_started: "بدأت المباراة",
   prompt_required: "اكتب نص السؤال",
+  already_finished: "انتهت المباراة بالفعل",
 };
 
 /**
@@ -67,6 +69,19 @@ export default function RefereePage({ params }: { params: Promise<{ code: string
     );
   }, []);
 
+  /** Remote matches: this seat's LiveKit grant (camera and mic). */
+  const mediaToken = useCallback(
+    () =>
+      new Promise<MediaGrant>((resolve) => {
+        const s = socket.current;
+        if (!s) return resolve(null);
+        s.emit("media:token", {}, (ack: Ack) =>
+          resolve(ack.ok && ack.url && ack.token ? { url: ack.url, token: ack.token } : null),
+        );
+      }),
+    [],
+  );
+
   function accept(e: React.FormEvent) {
     e.preventDefault();
     // The dashboard referees with the admin key instead of a player account.
@@ -103,7 +118,7 @@ export default function RefereePage({ params }: { params: Promise<{ code: string
             تحكيم المباراة <span className="mono" dir="ltr">#{code}</span>
           </h1>
           <p className="muted" style={{ margin: 0 }}>
-            ستنضم بصفتك الحكم: تبدأ المباراة، وتحكم الإجابات، وتبدّل السؤال عند الحاجة، وتنتقل للسؤال التالي.
+            ستنضم بصفتك الحكم: تبدأ المباراة، وتحكم الإجابات، وتبدّل السؤال عند الحاجة، وتنتقل للسؤال التالي. في المباريات عن بُعد تشارك بالكاميرا والميكروفون.
           </p>
           <label>
             اسم الحكم
@@ -148,6 +163,11 @@ export default function RefereePage({ params }: { params: Promise<{ code: string
         <div className="notice" style={{ ["--ok" as string]: "var(--bad)" }}>
           ⚠︎ {error}
         </div>
+      )}
+
+      {/* Remote matches: cameras and voices, as in the app. */}
+      {state.mode === "remote" && state.status !== "finished" && (
+        <RemoteMedia match={state} requestToken={mediaToken} />
       )}
 
       <div className="console">
@@ -231,6 +251,24 @@ export default function RefereePage({ params }: { params: Promise<{ code: string
                   بلا نقطة
                 </button>
               </div>
+            </div>
+          )}
+
+          {state.status === "playing" && (
+            <div className="card">
+              <div className="small subtle" style={{ marginBottom: 10 }}>
+                إنهاء المباراة الآن
+              </div>
+              <button
+                className="danger"
+                style={{ width: "100%" }}
+                onClick={() =>
+                  confirm("إنهاء المباراة الآن؟ تُحتسب النتيجة الحالية ويُعلن الفائز.") && send("referee:end")
+                }
+              >
+                <Icon name="close" />
+                إنهاء المباراة
+              </button>
             </div>
           )}
         </aside>

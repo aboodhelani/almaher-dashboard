@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import AddQuestionForm from "@/components/AddQuestionForm";
+import AddQuestionForm, { QuestionBody } from "@/components/AddQuestionForm";
 import QuestionCard from "@/components/QuestionCard";
 import { Icon, RoundIcon } from "@/components/ui";
 import { ar, countFor, LiveMatch, Question, QUESTION_TYPES, QuestionType } from "@/lib/api";
@@ -56,6 +56,12 @@ export default function MatchSetup({
 
   const save = async (list: Question[]) => {
     await emit("setup:set", { type, questions: list.map(body) });
+  };
+
+  /** A question written for this match only (not saved to the bank), as in the app. */
+  const addNew = async (q: QuestionBody) => {
+    const ack = await emit("setup:set", { type, questions: [...chosen.map(body), q] });
+    return ack.ok;
   };
 
   return (
@@ -133,21 +139,16 @@ export default function MatchSetup({
                 ↻ غيرها
               </button>
             )}
-            <button className="ghost" onClick={() => setAdding((a) => !a)}>
-              <Icon name={adding ? "close" : "plus"} />
-              {adding ? "إلغاء" : "سؤال جديد للبنك"}
-            </button>
+            {!full && (
+              <button className="ghost" onClick={() => setAdding((a) => !a)}>
+                <Icon name={adding ? "close" : "plus"} />
+                {adding ? "إلغاء" : "سؤال جديد"}
+              </button>
+            )}
           </div>
         </div>
-        {adding && (
-          <AddQuestionForm
-            type={type}
-            onSaved={async () => {
-              setAdding(false);
-              setSource("bank");
-              await load();
-            }}
-          />
+        {adding && !full && (
+          <AddQuestionForm key={type} type={type} onSubmit={addNew} onSaved={() => setAdding(false)} />
         )}
         {full && <p className="muted">اكتملت أسئلة هذه الفقرة.</p>}
         {options === null ? (
