@@ -1,0 +1,134 @@
+"use client";
+
+import { useState } from "react";
+import { apiSend, QuestionType } from "@/lib/api";
+
+/** "2:255, 3:18 4:1" → refs. Returns null if any part is malformed. */
+function parseRefs(text: string) {
+  const parts = text.split(/[\s,،]+/).filter(Boolean);
+  const refs = [];
+  for (const p of parts) {
+    const m = p.match(/^(\d{1,3})[:：](\d{1,3})$/);
+    if (!m) return null;
+    refs.push({ surah: Number(m[1]), ayah: Number(m[2]) });
+  }
+  return refs;
+}
+
+/** Add a question by hand; fields depend on the round. */
+export default function AddQuestionForm({
+  type,
+  onSaved,
+}: {
+  type: QuestionType;
+  onSaved: () => void | Promise<void>;
+}) {
+  const [prompt, setPrompt] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [refsText, setRefsText] = useState("");
+  const [page, setPage] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const needsPrompt = type !== "ayah_number" && type !== "sard" && type !== "right_left";
+  const needsAnswer = type === "similar" || type === "buzzer";
+  const needsRefs = type === "what_do_you_know" || type === "auction" || type === "similar" || type === "sard" || type === "right_left";
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    let refs: { surah: number; ayah: number }[] = [];
+    if (needsRefs) {
+      const parsed = parseRefs(refsText);
+      if (!parsed) return setError("اكتب الآيات بصيغة سورة:آية، مثل 2:255, 3:18");
+      if (type === "sard" && parsed.length !== 1) return setError("اكتب آية واحدة، مثل 2:255");
+      if (type === "right_left" && (parsed.length < 2 || parsed.length % 2 !== 0)) {
+        return setError("اكتب عددًا زوجيًا من الآيات (١٢ عادةً): النصف الأول لمتسابق والثاني لمنافسه");
+      }
+      refs = parsed;
+    }
+    setBusy(true);
+    try {
+      await apiSend("POST", "/admin/questions", {
+        type,
+        prompt,
+        answer,
+        refs,
+        page: type === "ayah_number" ? Number(page) : undefined,
+      });
+      await onSaved();
+    } catch (err) {
+      setError(`تعذر الحفظ: ${(err as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="card form" onSubmit={submit}>
+      {type === "ayah_number" && (
+        <label className="narrow">
+          رقم الصفحة (١–٦٠٤)
+          <input type="number" min={1} max={604} value={page} onChange={(e) => setPage(e.target.value)} required />
+        </label>
+      )}
+      {needsPrompt && (
+        <label>
+          نص السؤال
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            required
+            rows={2}
+            placeholder={
+              type === "auction"
+                ? "كم آية تستطيع أن تذكر تبدأ بـ «فإذا»؟"
+                : type === "similar"
+                  ? "متشابهة في أول ٤ كلمات بين سور: يوسف، النحل، الأنبياء. ما هي؟"
+                  : type === "buzzer"
+                    ? "ما السورة التي تنتهي بـ «إن الله بكل شيء عليم»؟"
+                    : "اذكر آيات تبدأ بـ «والذين آمنوا»"
+            }
+          />
+        </label>
+      )}
+      {needsAnswer && (
+        <label>
+          الإجابة
+          <input value={answer} onChange={(e) => setAnswer(e.target.value)} required />
+        </label>
+      )}
+      {needsRefs && (
+        <label>
+          {type === "similar"
+            ? "مواضع التشابه"
+            : type === "sard"
+              ? "الآية"
+              : type === "right_left"
+                ? "الآيات (١٢: ست لكل متسابق)"
+                : "الإجابات (الآيات)"}{" "}
+          <span className="muted small">بصيغة سورة:آية مفصولة بفواصل</span>
+          <textarea
+            value={refsText}
+            onChange={(e) => setRefsText(e.target.value)}
+            required
+            rows={2}
+            dir="ltr"
+            placeholder="12:109, 16:43, 21:7"
+          />
+        </label>
+      )}
+      {type === "auction" && <p className="muted small">العدد الكلي يُحسب تلقائيًا من عدد الآيات.</p>}
+      {type === "sard" && (
+        <p className="muted small">تُعرض أول كلمة (أو أكثر إن تشابهت بدايتها مع آيات أخرى)، والإجابة آخر كلمة في الآية، يُملآن تلقائيًا.</p>
+      )}
+      {type === "ayah_number" && <p className="muted small">تُعرض أول آية في الصفحة، والإجابة عدد آياتها، يُملآن تلقائيًا.</p>}
+      {error && <p className="error">{error}</p>}
+      <div>
+        <button type="submit" disabled={busy}>
+          {busy ? "…" : "حفظ السؤال"}
+        </button>
+      </div>
+    </form>
+  );
+}
