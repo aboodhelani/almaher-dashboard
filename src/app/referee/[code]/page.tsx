@@ -59,7 +59,7 @@ export default function RefereePage({ params }: { params: Promise<{ code: string
   /** Like [send], resolving with the acknowledgement (setup lists). */
   const emitAck = useCallback((event: string, body: object = {}) => {
     setError(null);
-    return new Promise<any>((resolve) =>
+    return new Promise<Ack>((resolve) =>
       socket.current?.emit(event, body, (ack: Ack) => {
         if (!ack.ok) setError(ERRORS[ack.error ?? ""] ?? ack.error ?? "خطأ");
         resolve(ack);
