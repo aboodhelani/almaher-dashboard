@@ -204,6 +204,9 @@ export default function RefereePage({ params }: { params: Promise<{ code: string
                   ? "تعادل"
                   : `الفائز: ${p[state.winner as P]?.name ?? ""}`}
               </h1>
+              {state.forfeitedBy && (
+                <p className="muted">🏳 انسحب {p[state.forfeitedBy]?.name ?? ""} من المباراة</p>
+              )}
               <p className="result" style={{ fontSize: 28 }}>
                 {state.scores.player1} - {state.scores.player2}
               </p>
@@ -393,6 +396,8 @@ function RefereeControls({ state, send }: { state: State; send: (e: string, b?: 
           </div>
         </div>
       );
+  } else if (r.type === "ayah_by_ayah") {
+    judging = verdicts(`صحيح: قالها ${name(r.turn)}`, "خطأ");
   } else if (r.type === "similar" || r.type === "sard") {
     // No buzzer: judge whichever player answered aloud (3 tries each).
     judging = (

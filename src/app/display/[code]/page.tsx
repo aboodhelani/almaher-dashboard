@@ -153,6 +153,9 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
           <p className="display-huge">
             {state.winner === "draw" || !state.winner ? "تعادل" : `الفائز: ${name(state.winner)}`}
           </p>
+          {state.forfeitedBy && (
+            <p className="display-big">🏳 انسحب {name(state.forfeitedBy)} من المباراة</p>
+          )}
         </section>
       )}
 
@@ -207,6 +210,19 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
                 </div>
               ))}
             </div>
+          )}
+
+          {r.type === "ayah_by_ayah" && r.chain && r.chain.said.length > 0 && (
+            <p className="display-key">
+              {r.chain.said.map((opening) => `${opening}…`).join(" · ")}
+            </p>
+          )}
+
+          {r.phase === "revealed" && r.forfeited && (
+            <p className="display-key">
+              🏳 انسحب {name(r.forfeited)} من السؤال · النقاط لـ{" "}
+              {name(r.forfeited === "player1" ? "player2" : "player1")}
+            </p>
           )}
 
           {r.phase === "revealed" && r.question.answer != null && (

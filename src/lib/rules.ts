@@ -19,6 +19,7 @@ export interface MatchRules {
       slowPoints: number;
     };
     sard: { enabled: boolean; points: number; seconds: number; strikes: number };
+    ayah_by_ayah: { enabled: boolean; points: number; seconds: number };
     right_left: { enabled: boolean; points: number; itemSeconds: number };
     buzzer: { enabled: boolean; points: number; seconds: number };
   };
@@ -73,6 +74,13 @@ export function roundRules(type: QuestionType, rules: MatchRules): string[] {
         "تُعرض أول كلمة من آية، وإن شاركتها آيات أخرى في بدايتها تُعرض كلمتان أو أكثر حتى تتميز.",
         `يقول المتسابق آخر كلمة في الآية مباشرة بصوته، ومن أصاب أخذ ${points(r.sard.points)}.`,
         `لكل متسابق ${ar(r.sard.strikes)} محاولات، وإن انتهت ${duration(r.sard.seconds)} فلا نقطة لأحد.`,
+      ];
+    case "ayah_by_ayah":
+      return [
+        "تُعرض بداية آية: أول كلمة، وإن شاركتها آيات أخرى في بدايتها تُعرض كلمتان أو أكثر حتى تتميز.",
+        "يقول المتسابق الذي عليه الدور بداية الآية التالية، ثم يقول منافسه بداية التي تليها، وهكذا بالتناوب.",
+        `لكل دور ${duration(r.ayah_by_ayah.seconds)}؛ من أخطأ في البداية أو انتهى وقته ذهبت ${points(r.ayah_by_ayah.points)} لمنافسه.`,
+        "إن انتهت السورة قبل أن يخطئ أحدهما فلا نقطة لأحد.",
       ];
     case "right_left":
       return [

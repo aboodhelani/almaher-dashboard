@@ -35,6 +35,10 @@ const FIELDS: Record<QuestionType, { key: string; label: string; unit: string }[
     { key: "strikes", label: "محاولات كل متسابق", unit: "محاولة" },
     { key: "points", label: "نقاط السؤال", unit: "نقطة" },
   ],
+  ayah_by_ayah: [
+    { key: "seconds", label: "وقت كل دور", unit: "ثانية" },
+    { key: "points", label: "نقاط المنافس إذا أخطأ صاحب الدور", unit: "نقطة" },
+  ],
   right_left: [
     { key: "itemSeconds", label: "وقت كل بداية", unit: "ثانية" },
     { key: "points", label: "نقاط السؤال", unit: "نقطة" },

@@ -43,9 +43,12 @@ export default function AddQuestionForm({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const needsPrompt = type !== "ayah_number" && type !== "sard" && type !== "right_left";
+  // السرد and آية بآية are built from one ayah.
+  const oneAyah = type === "sard" || type === "ayah_by_ayah";
+  const needsPrompt = type !== "ayah_number" && !oneAyah && type !== "right_left";
   const needsAnswer = type === "similar" || type === "buzzer";
-  const needsRefs = type === "what_do_you_know" || type === "auction" || type === "similar" || type === "sard" || type === "right_left";
+  const needsRefs =
+    type === "what_do_you_know" || type === "auction" || type === "similar" || oneAyah || type === "right_left";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +57,7 @@ export default function AddQuestionForm({
     if (needsRefs) {
       const parsed = parseRefs(refsText);
       if (!parsed) return setError("اكتب الآيات بصيغة سورة:آية، مثل 2:255, 3:18");
-      if (type === "sard" && parsed.length !== 1) return setError("اكتب آية واحدة، مثل 2:255");
+      if (oneAyah && parsed.length !== 1) return setError("اكتب آية واحدة، مثل 2:255");
       if (type === "right_left" && (parsed.length < 2 || parsed.length % 2 !== 0)) {
         return setError("اكتب عددًا زوجيًا من الآيات (١٢ عادةً): النصف الأول لمتسابق والثاني لمنافسه");
       }
@@ -120,7 +123,7 @@ export default function AddQuestionForm({
         <label>
           {type === "similar"
             ? "مواضع التشابه"
-            : type === "sard"
+            : oneAyah
               ? "الآية"
               : type === "right_left"
                 ? "الآيات (١٢: ست لكل متسابق)"
@@ -139,6 +142,9 @@ export default function AddQuestionForm({
       {type === "auction" && <p className="muted small">العدد الكلي يُحسب تلقائيًا من عدد الآيات.</p>}
       {type === "sard" && (
         <p className="muted small">تُعرض أول كلمة (أو أكثر إن تشابهت بدايتها مع آيات أخرى)، والإجابة آخر كلمة في الآية، يُملآن تلقائيًا.</p>
+      )}
+      {type === "ayah_by_ayah" && (
+        <p className="muted small">تُعرض أول كلمة (أو أكثر إن تشابهت بدايتها مع آيات أخرى)، والآيات التالية حتى آخر السورة تُملأ تلقائيًا.</p>
       )}
       {type === "ayah_number" && <p className="muted small">تُعرض أول آية في الصفحة، والإجابة عدد آياتها، يُملآن تلقائيًا.</p>}
       {error && <p className="error">{error}</p>}

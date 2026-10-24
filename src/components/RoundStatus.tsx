@@ -37,6 +37,11 @@ export default function RoundStatus({ match, round: r, now = Date.now(), receive
           </Chip>
         )}
         {r.replaced && <Chip color="var(--gold)">↻ سؤال بديل</Chip>}
+        {r.forfeited && (
+          <Chip color="var(--bad)">
+            🏳 انسحب {name(r.forfeited)} من السؤال
+          </Chip>
+        )}
         {r.phase === "revealed" ? (
           <Chip>✓ انتهى</Chip>
         ) : r.timeLimitSeconds > 0 ? (
@@ -137,6 +142,34 @@ export default function RoundStatus({ match, round: r, now = Date.now(), receive
             </div>
           ))}
         </div>
+      )}
+      {r.type === "ayah_by_ayah" && r.chain && (
+        <>
+          {r.phase === "answering" && (
+            <div className="status-line strong" style={{ "--c": `var(--${r.turn === "player1" ? "p1" : "p2"})` } as Vars}>
+              🎙 دور {name(r.turn)}: بداية الآية التالية
+            </div>
+          )}
+          {r.phase === "answering" && r.chain.next && (
+            <div className="answer key">
+              المطلوبة: <b className="ayah-inline">{r.chain.next.opening}…</b>
+              <span className="small muted">
+                {" "}
+                · {r.chain.next.surahName} {ar(r.chain.next.ayah)}
+              </span>
+            </div>
+          )}
+          {r.chain.said.length > 0 && (
+            <div className="refs">
+              {r.chain.said.map((opening, i) => (
+                <div key={i} className="ref">
+                  <span className="small muted">{ar(i + 1)}</span>
+                  <span className="ayah-inline small-ayah">{opening}…</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
       {r.type === "what_do_you_know" && (
         <div className="small muted center-text">

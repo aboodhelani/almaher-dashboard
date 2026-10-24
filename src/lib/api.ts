@@ -82,6 +82,8 @@ export interface LiveMatch {
   maxQuestions?: number;
   /** The referee's chosen questions per round, while preparing. */
   setup?: Partial<Record<QuestionType, Question[]>>;
+  /** The player who quit the match (the other one won it). */
+  forfeitedBy?: "player1" | "player2" | null;
 }
 
 /** Questions [type] has in [match] (0 when it is not played). */
@@ -115,6 +117,15 @@ export interface LiveRound {
   timeLimitSeconds: number;
   /** The referee swapped this question for an alternative. */
   replaced?: boolean;
+  /** The player who gave this question up (the other one got its points). */
+  forfeited?: P | null;
+  /** آية بآية: the next ayahs said so far, and (referee) the one due next. */
+  chain?: {
+    step: number;
+    length: number;
+    said: string[];
+    next?: { surah: number; ayah: number; surahName: string; text: string; opening: string };
+  };
   question: {
     /** Hidden (null) from players during الجرس until it is decided. */
     prompt: string | null;
@@ -187,7 +198,15 @@ export interface LeaderboardRow {
   points: number;
 }
 
-export type QuestionType = "what_do_you_know" | "ayah_number" | "auction" | "similar" | "sard" | "right_left" | "buzzer";
+export type QuestionType =
+  | "what_do_you_know"
+  | "ayah_number"
+  | "auction"
+  | "similar"
+  | "sard"
+  | "ayah_by_ayah"
+  | "right_left"
+  | "buzzer";
 
 export interface QuestionRef {
   surah: number;
@@ -256,6 +275,14 @@ export const QUESTION_TYPES: {
     hint: "أول كلمة (أو كلمات) من آية، ويقول المتسابق آخر كلمة فيها",
     color: "var(--r-sard)",
     referee: "عندما يجيب أحدهما اضغط ✓ أو ✗ بجانب اسمه.",
+  },
+  {
+    type: "ayah_by_ayah",
+    name: "آية بآية",
+    icon: "/round_ayah_by_ayah.svg",
+    hint: "بداية آية، ثم يقول المتسابقان بداية الآية التالية بالتناوب",
+    color: "var(--r-aba)",
+    referee: "ترى الآية المطلوبة: اضغط ✓ إن قال صاحب الدور بدايتها فينتقل الدور، أو ✗ فتذهب النقطة لمنافسه.",
   },
   {
     type: "right_left",

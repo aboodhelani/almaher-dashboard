@@ -47,11 +47,17 @@ export default function QuestionCard({
 
       <div className="answer key">
         الإجابة:{" "}
-        <b className={q.type === "similar" || q.type === "sard" ? "ayah-inline" : ""}>
+        <b className={q.type === "similar" || q.type === "sard" || q.type === "ayah_by_ayah" ? "ayah-inline" : ""}>
           {isAyah
             ? `صفحة ${ar(Number(q.meta.page))} (${String(q.meta.surahName ?? "")}) · ${ar(Number(q.answer))} آية`
             : q.answer}
         </b>
+        {q.type === "ayah_by_ayah" && Array.isArray(q.meta.chain) && (
+          <span className="small muted">
+            {" "}
+            · من {String(q.meta.surahName ?? "")} {ar(Number(q.meta.ayah))} · {ar(q.meta.chain.length)} آية بعدها
+          </span>
+        )}
         {q.type === "sard" && (
           <span className="small muted">
             {" "}
